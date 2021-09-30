@@ -7,7 +7,7 @@ import random
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--map', type=str, default="Random")
-    parser.add_argument('--size', type=int, default=5) # door width
+    parser.add_argument('--size', type=int, default=5)
     return parser.parse_args()
 
 def first(collection):
