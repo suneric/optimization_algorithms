@@ -201,7 +201,7 @@ def geneticAlgorithm(cities, popSize, eliteSize, mutationRate, generations):
     return bestRoute, progress
 
 
-def get_ga_args():
+def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--map', type=str, default="Random")
     parser.add_argument('--size', type=int, default=5)
@@ -213,8 +213,7 @@ def get_ga_args():
 
 # main loop
 if __name__ == '__main__':
-    #cities = USA_landmarks_map()
-    args = get_ga_args()
+    args = getArgs()
     cities = Random_cities_map(args.size)
     if args.map == "USA":
         cities = USA_landmarks_map()

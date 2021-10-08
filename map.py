@@ -2,7 +2,161 @@
 import random
 import csv
 import urllib
+import matplotlib.pyplot as plt
+import matplotlib
+import numpy as np
+import math
 
+"""
+SquareGrid
+anchor: the base point of the square
+length: side length of the square
+id: unique id
+status: 0 or 1, for the grid is valid on map
+cover: covered by a view: 0, no covering, n covered by n views
+"""
+class SquareGrid:
+    def __init__(self, anchor, length, id):
+        self.anchor = anchor # bottom left position [width, height]
+        self.length = length
+        self.id = id
+        self.status = 0 # 0: empty (water), 1: valid (land)
+        self.cover = 0 # not covered
+
+    # check in a pt is in grid
+    def inGrid(self, pt):
+        if pt[0] < self.anchor[0] or pt[0] > self.anchor[0]+self.length:
+            return False
+        if pt[1] < self.anchor[1] or pt[1] > self.anchor[1]+self.length:
+            return False
+        return True
+
+    def center(self):
+        return (self.anchor[0]+0.5*self.length, self.anchor[1]+0.5*self.length)
+
+"""
+GridMap
+"""
+class GridMap:
+    # make a map with width of 90 meters and height of 60 meters
+    def __init__(self, width = 90, height = 60, res=1, n=1000, seed=11):
+        self.height = height
+        self.width = width
+        random.seed(seed*n)
+        self.seeds = np.array([(random.randrange(width), random.randrange(height)) for c in range(n)])
+        self.grids = self.makeGrids(res)
+        self.ratio = self.computeLandRatio(self.grids)
+
+    def computeLandRatio(self,grids):
+        land = 0
+        for grid in grids:
+            if grid.status:
+                land += 1
+        ratio = float(land) / float(len(grids))
+        print("{} valid grids in total {} grids with valid ratio {:.3f} ".format(land, len(grids), ratio))
+        return ratio
+
+    def makeGrids(self, res=1):
+        nrow = int(self.height/res)
+        ncol = int(self.width/res)
+        grids = []
+        for i in range(nrow):
+            for j in range(ncol):
+                sg = SquareGrid(anchor=(j*res,i*res), length=res, id=j+i*ncol)
+                grids.append(sg)
+        print("Generate {} grids with resolution of {} meters".format(len(grids), res))
+
+        # update status
+        for grid in grids:
+            self.checkStatus(grid)
+            #print(grid.anchor,grid.status)
+
+        return np.array(grids)
+
+    def checkStatus(self,grid):
+        if not grid.status:
+            for pt in self.seeds:
+                if grid.inGrid(pt):
+                    grid.status = 1 # occupied by seed
+                    break
+        return grid.status
+
+    def plotMap(self, ax, plotSeeds = False):
+        ax.autoscale(enable=False)
+        ax.set_xlim([-10,self.width+10])
+        ax.set_ylim([-10,self.height+10])
+
+        if plotSeeds:
+            ax.scatter(self.seeds[:,0], self.seeds[:,1], s=1, c='g', marker='o')
+
+        for grid in self.grids:
+            if grid.status:
+                patch = matplotlib.patches.Rectangle((grid.anchor),grid.length, grid.length, facecolor = "green", edgecolor='black',linewidth=1.0,alpha=0.2)
+                ax.add_patch(patch)
+            #ax.text(grid.anchor[0],grid.anchor[1],str(grid.id))
+
+
+"""
+A ViewPoint is identifed with its location (x,y,z,yaw) and the sensor FOV(angle1,angle2)
+yaw (about z axis), angle1 (in x direction) an angle2 (in y direction) are measured in degree
+"""
+class ViewPoint:
+    def __init__(self,location=(0.0,0.0,1.0,90.0),fov=(60.0,60.0),id=0):
+        self.location = location
+        self.fov = fov
+        self.id = id
+        self.view = self.coverArea()
+        self.cover = []
+
+    def coverArea(self):
+        """
+        cover area is calculated with give the working distance (z) and the FOV
+        return a rectangle vertices in np.array [x,y,0]
+        """
+        center = (self.location[0],self.location[1])
+        fov1 = math.radians(0.5*self.fov[0])
+        fov2 = math.radians(0.5*self.fov[1])
+        xlen = self.location[2]*np.tan(fov1)
+        ylen = self.location[2]*np.tan(fov2)
+        xmin = center[0] - xlen
+        xmax = center[0] + xlen
+        ymin = center[1] - ylen
+        ymax = center[1] + ylen
+
+        yaw = math.radians(self.location[3])
+        rmat = np.matrix([[np.cos(yaw),-np.sin(yaw),0],
+                          [np.sin(yaw),np.cos(yaw),0],
+                          [0,0,1]])
+
+        pt0 = self.rotatePoint(center,yaw,(xmin,ymin))
+        pt1 = self.rotatePoint(center,yaw,(xmax,ymin))
+        pt2 = self.rotatePoint(center,yaw,(xmax,ymax))
+        pt3 = self.rotatePoint(center,yaw,(xmin,ymax))
+        return (pt0,pt1,pt2,pt3)
+
+    def rotatePoint(self,center,angle,p):
+        s = np.sin(angle)
+        c = np.cos(angle)
+        x = p[0]-center[0]
+        y = p[1]-center[1]
+        xnew = x*c-y*s + center[0]
+        ynew = x*s+y*c + center[1]
+        return (xnew,ynew)
+
+    def plotView(self,ax,plotBoundary=False):
+        if plotBoundary:
+            x = [self.view[0][0],self.view[1][0],self.view[2][0],self.view[3][0],self.view[0][0]]
+            y = [self.view[0][1],self.view[1][1],self.view[2][1],self.view[3][1],self.view[0][1]]
+            ax.plot(x,y,linewidth=2,color="red")
+
+        for grid in self.cover:
+            if grid.status:
+                patch = matplotlib.patches.Rectangle((grid.anchor),grid.length, grid.length, facecolor = "red", edgecolor='black',linewidth=1.0,alpha=0.2)
+                ax.add_patch(patch)
+
+"""
+Point indicate the location of city
+"""
 class Point(complex):
     x = property(lambda p: p.real)
     y = property(lambda p: p.imag)

@@ -313,7 +313,7 @@ class ACO:
         return best
 
 
-def get_ga_args():
+def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('--map', type=str, default="Random")
     parser.add_argument('--size', type=int, default=10)
@@ -327,7 +327,7 @@ def get_ga_args():
 # main loop
 if __name__ == '__main__':
     #cities = USA_landmarks_map()
-    args = get_ga_args()
+    args = getArgs()
     cities = Random_cities_map(args.size)
     if args.map == "USA":
         cities = USA_landmarks_map()
@@ -338,7 +338,7 @@ if __name__ == '__main__':
 
     plt.plot(progress)
     plt.ylabel('Distance')
-    plt.xlabel('Generation')
+    plt.xlabel('Iteration')
     plt.show()
     plot_tour(bestTour)
     plt.show()
