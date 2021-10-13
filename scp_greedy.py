@@ -9,48 +9,6 @@ import time
 
 
 """
-Generate viewpoints
-gridMap: the map with grid information
-workingDistance: the distance from the ground to the camera
-type: "random": randomly generated the viewpoints, "uniform": each grid will have a viewpoint above on it.
-return a list of viewpoints
-"""
-def generateViewPoints(gridMap, fov, workingDistance = 3, type = "uniform"):
-    vps = []
-    size = len(gridMap.grids)
-    for c in range(size):
-        base = (0,0)
-        if type == "random":
-            base = (random.randrange(gridMap.width), random.randrange(gridMap.height))
-        else:
-            base = gridMap.grids[c].center()
-
-        # create a viewpoint with given distance and rotation angle 0.0
-        pose = (base[0], base[1], workingDistance, 0.0)
-        vp = ViewPoint(location=pose, fov = fov, id=c)
-        vps.append(vp)
-
-    for vp in vps:
-        computeViewCoverGrids(gridMap.grids, vp)
-
-    return vps
-
-"""
-compute the covering grid under a viewpoint
-"""
-def computeViewCoverGrids(grids, viewPt):
-    xmin,xmax,ymin,ymax = viewPt.view[0][0],viewPt.view[1][0],viewPt.view[1][1],viewPt.view[2][1]
-    for grid in grids:
-        if grid.anchor[0] > xmax or grid.anchor[0]+grid.length < xmin:
-            continue
-        if grid.anchor[1] > ymax or grid.anchor[1]+grid.length < ymin:
-            continue
-        # only count the valid grid
-        if grid.status == 1:
-            viewPt.cover.append(grid)
-    return viewPt.cover
-
-"""
 plot viewpoints position
 """
 def plotViewPoints(ax, viewPts, plotCoverage=True, plotBoundary=False):

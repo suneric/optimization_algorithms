@@ -66,7 +66,7 @@ class Ant:
 
         self.size = size
         self.tourLength = np.inf
-        self.tour = np.ones(self.size+1, dtype=np.int64)*-1
+        self.tour = np.ones(self.size, dtype=np.int64)*-1
         self.visited = np.zeros(self.size, dtype=np.int64)
 
     def clone(self):
@@ -206,7 +206,7 @@ class ACO:
             print("{0}\t{1}\t{2}\t{3}\t{4}".format(stats[0], stats[1], stats[2], stats[3], stats[4]))
         t1 = time.clock()
         bestTour = [self.cities[i] for i in self.bestSoFarAnt.tour]
-        print("{} city tour with length {:.1f} in {:.3f} secs".format(len(self.cities), tour_length(bestTour), t1-t0))
+        print("{} city tour with length {:.2f} in {:.3f} secs".format(len(self.cities), tour_length(bestTour), t1-t0))
         return progress, bestTour
 
     def generateSolutions(self):
@@ -222,7 +222,7 @@ class ACO:
             ant.tour[step] = r
             ant.visited[r] = 1
         # 3. Each ant constructs a complete tour
-        while step < self.n:
+        while step < self.n-1:
             step += 1
             for k in range(self.ants):
                 self.decisionRule(k,step)
@@ -294,7 +294,7 @@ class ACO:
         for ant in self.colony:
             # adds pheromone to the arcs belonging to the tours constructed by ant
             delta = 1.0 / ant.tourLength
-            for i in range(self.n):
+            for i in range(self.n-1):
                 j = ant.tour[i]
                 k = ant.tour[i+1]
                 self.pheromone[j][k] = self.pheromone[j][k] + delta

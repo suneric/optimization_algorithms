@@ -1,8 +1,8 @@
 """
 discrete coverage path planning problem
-
-approaches
-
+it could be divided into two problems: first, solving the set covering problem to find a minimum ser of
+viewpoints among a bounch of candidate viewpoints that fully cover the area of interest; second, solving
+the traverling salesman problem to find a shortest visit path among the set of selected viewpoints.
 """
 import time
 import random
@@ -30,6 +30,41 @@ def plotTrajectory(ax,tour,addArrow=False):
     plot_lines(ax,list(tour)+[start],addArrow=addArrow)
     plot_lines(ax,[start],'yh',markersize=20) # mark the start city with a red square
 
+"""
+Draw the trajectory and coverage dynamically with a specified speed
+"""
+def drawTrajectory(ax,map,tour,vps,speed=3):
+    # draw map
+    map.plotMap(ax)
+    plt.draw()
+    # draw start viewpoint
+    start = tour[0]
+    plot_lines(ax,[start],'bh')
+    vps[0].plotView(ax)
+    plt.draw()
+    plt.pause(1) # puase 1 second to start
+    # draw trajectory
+    totalDist = 0
+    for i in range(1, len(tour)):
+        next = tour[i]
+        plot_lines(ax,[start,next])
+        vps[i].plotView(ax)
+        plt.draw()
+        dist = distance(start,next)
+        totalDist += dist
+        plt.pause(dist/speed)
+        start = next
+
+    # return to start
+    plot_lines(ax,[start,tour[0]])
+    dist = distance(start,tour[0])
+    totalDist += dist
+    plt.draw()
+
+    #print("The best solution visits {} viewpoints, resulting in {:.3f} meters of total traveling distance.".format(len(tour),totalDist))
+    plt.text(0,-5,"Done with {:.2f} meters traveling {} viewpoints.".format(totalDist,len(tour)))
+    plt.show()
+
 def getParameters():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mapwidth', type=int, default=100)
@@ -50,12 +85,12 @@ def getParameters():
 if __name__ == '__main__':
     args = getParameters()
 
-    fig1 = plt.figure(figsize=(args.mapwidth/5,args.mapheight/5))
-    ax = fig1.add_subplot(111)
+    fig = plt.figure(figsize=(args.mapwidth/5,args.mapheight/5))
+    ax = fig.add_subplot(111)
 
     # generate grid map
     map = GridMap(width=args.mapwidth,height=args.mapheight,res=args.mapres,n=args.mapseeds)
-    map.plotMap(ax)
+    #map.plotMap(ax)
 
     # generate viewpoints
     vps = generateViewPoints(gridMap = map,fov = (80.0,80.0), workingDistance = args.viewdis, type = args.vpmethod)
@@ -63,18 +98,21 @@ if __name__ == '__main__':
 
     # solving covering set problem with greedy
     minvps = computeMinimumCoveringViewpoints(map = map, viewPts = vps)
-    plotViewPoints(ax = ax, viewPts = minvps,plotCoverage = True, plotBoundary=False)
+    #plotViewPoints(ax = ax, viewPts = minvps,plotCoverage = True, plotBoundary=False)
 
     # use ACO to solve TSP
-    cities = frozenset(City(vp.location[0], vp.location[1]) for vp in minvps)
+    cities = [City(vp.location[0], vp.location[1]) for vp in minvps]
     tspACO = ACO(cities = list(cities), ants = args.ants, maxIter = args.maxIter, alpha = args.alpha, beta = args.beta, rho = args.rho)
     progress, bestTour = tspACO.run()
-    plotTrajectory(ax, bestTour, addArrow=False)
+    #plotTrajectory(ax, bestTour, addArrow=False)
 
-    fig2 = plt.figure()
-    ax2 = fig2.add_subplot(111)
-    ax2.plot(progress)
-    ax2.set_ylabel('Distance')
-    ax2.set_xlabel('Iteration')
+    bestvps = [minvps[cities.index(city)] for city in bestTour]
+    drawTrajectory(ax,map,bestTour,bestvps, speed=5)
+
+    # fig2 = plt.figure()
+    # ax2 = fig2.add_subplot(111)
+    # ax2.plot(progress)
+    # ax2.set_ylabel('Distance')
+    # ax2.set_xlabel('Iteration')
 
     plt.show()
