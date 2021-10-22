@@ -98,6 +98,7 @@ class ACO:
         self.alpha = alpha
         self.beta = beta
         self.rho = rho
+        self.start = None
         self.initialize()
 
     def initialize(self):
@@ -207,6 +208,7 @@ class ACO:
         t1 = time.clock()
         bestTour = [self.cities[i] for i in self.bestSoFarAnt.tour]
         print("{} city tour with length {:.2f} in {:.3f} secs".format(len(self.cities), tour_length(bestTour), t1-t0))
+        bestTour = alter_tour(bestTour)
         return progress, bestTour
 
     def generateSolutions(self):
@@ -333,7 +335,7 @@ if __name__ == '__main__':
         cities = USA_landmarks_map()
 
     print(list(cities))
-    tspACO = ACO(cities = list(cities), ants = args.ants, maxIter = args.maxIter, alpha = args.alpha, beta = args.beta, rho = args.rho)
+    tspACO = ACO(cities=list(cities), ants=args.ants, maxIter=args.maxIter, alpha=args.alpha, beta=args.beta, rho=args.rho)
     progress, bestTour = tspACO.run()
 
     plt.plot(progress)

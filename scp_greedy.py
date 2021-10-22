@@ -6,7 +6,7 @@ import math
 from map import *
 from utils import *
 import time
-
+import copy
 
 """
 plot viewpoints position
@@ -31,7 +31,7 @@ ralative cost of the set. This algorithm doesn't always give the best result, bu
 gives an optimal one.
 
 """
-def set_cover(universe, subsets, costs):
+def set_cover(universe, subsets, costs, startIdx):
     cost = 0
     elements = set(e for s in subsets for e in s)
     # check full coverage
@@ -41,6 +41,11 @@ def set_cover(universe, subsets, costs):
 
     covered = set()
     cover = []
+
+    start = subsets[startIdx]
+    cover.append(start)
+    cost += costs[startIdx]
+    covered |= start
     # Greedily add the subsets with the most uncovered points
     while covered != elements:
         subset = max(subsets, key=lambda s: len(s-covered)/costs[subsets.index(s)])
@@ -54,36 +59,30 @@ def set_cover(universe, subsets, costs):
 """
 Compute an approximate minimum set of viewpoints to cover the who valid grid
 """
-def computeMinimumCoveringViewpoints(map,viewPts):
-    validGrids = []
-    for grid in map.grids:
-        if grid.status == 1:
-            validGrids.append(grid.id)
-
-    universe = set(validGrids)
+def computeMinimumCoveringViewpoints(map,vps,startIdx):
+    universe = set([grid.id for grid in map.landGrids])
     subsets = []
     costs = []
-    for i in range(len(viewPts)):
-        vpset = set([grid.id for grid in viewPts[i].cover])
-        #print(vpset)
+    for i in range(len(vps)):
+        vpset = set([grid.id for grid in vps[i].landCover])
         subsets.append(vpset)
         costs.append(1.0) # same cost for every viewpoint
 
     t0 = time.clock()
-    cover, cost = set_cover(universe,subsets,costs)
+    cover, cost = set_cover(universe,subsets,costs,startIdx)
     t1 = time.clock()
 
     # duplicate grid
     duplicate1, duplicate2 = computeDuplication(universe,cover)
-    print("Find {} viewpoints in {} candidates in {:.3f} secs with cost {:.3f} and duplication {:.3f} {:.3f}".format(len(cover), len(viewPts), t1-t0, cost, duplicate1, duplicate2))
+    print("Find {} viewpoints in {} candidates in {:.3f} secs with cost {:.3f} and duplication {:.3f} {:.3f}".format(len(cover), len(vps), t1-t0, cost, duplicate1, duplicate2))
 
     # return the view points
-    minVps = []
+    minvps = []
     for s in cover:
         index = subsets.index(s)
-        minVps.append(viewPts[index])
+        minvps.append(vps[index])
 
-    return minVps
+    return minvps
 
 """
 duplicate1: minimum duplicaitoin with count overlap grid only once
