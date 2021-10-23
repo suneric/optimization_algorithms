@@ -14,7 +14,6 @@ import sys
 import os
 from cpp_mcts import MCTSUtil
 
-
 ############################################################
 # main
 def getParameters():
@@ -42,7 +41,6 @@ if __name__ == "__main__":
     # create map, viewpoints and save
     vps = []
     map = GridMap()
-    width, height = args.mapwidth, args.mapheight
     if args.save:
         map.makeMap(width=args.mapwidth,height=args.mapheight,res=args.mapres,sn=args.mapseeds)
         map.saveMap(os.path.join(args.save, args.mapfile))
@@ -51,10 +49,9 @@ if __name__ == "__main__":
 
     if args.load:
         map.loadMap(os.path.join(args.load, args.mapfile))
-        width, height = map.width, map.height
         vps = loadViewpoints(os.path.join(args.load, args.vpsfile),map)
 
-    fig = plt.figure(figsize=(width/5,height/5))
+    fig = plt.figure(figsize=(15,12)) # inch
     ax = fig.add_subplot(111)
 
     if args.draw == 1: # map only

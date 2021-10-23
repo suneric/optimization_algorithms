@@ -208,7 +208,6 @@ class ACO:
         t1 = time.clock()
         bestTour = [self.cities[i] for i in self.bestSoFarAnt.tour]
         print("{} city tour with length {:.2f} in {:.3f} secs".format(len(self.cities), tour_length(bestTour), t1-t0))
-        bestTour = alter_tour(bestTour)
         return progress, bestTour
 
     def generateSolutions(self):

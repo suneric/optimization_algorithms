@@ -315,7 +315,7 @@ if __name__ == "__main__":
         vps = loadViewpoints(os.path.join(args.load, args.vpsfile),map)
 
     # monte carlo tree search
-    startIdx = np.random.randint(len(vps))
+    startIdx = 0 #np.random.randint(len(vps))
     startVp = vps[startIdx]
     util = MCTSUtil(map, vps, actDim=args.ad, cn=args.cn)
     initState = util.initialState(startVp)
