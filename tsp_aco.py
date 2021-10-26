@@ -170,7 +170,10 @@ class ACO:
         return self.computeTourLength(tour)
 
     def computeTourLength(self,tour):
-        return sum(distance(self.cities[tour[i]],self.cities[tour[i-1]]) for i in range(len(tour)))
+        # tour no return to the start
+        return sum(distance(self.cities[tour[i]],self.cities[tour[i+1]]) for i in range(len(tour)-1))
+        # tour return to the start
+        #return sum(distance(self.cities[tour[i]],self.cities[tour[i-1]]) for i in range(len(tour)))
 
     def createColony(self, numOfAnts, size):
         """Create a colony of ants according to the number of ants specified,"""
@@ -199,15 +202,14 @@ class ACO:
             self.updateStatistics()
             self.updatePheromone()
             self.iter += 1
-
             # console output
             lenValues = np.array([ant.tourLength for ant in self.colony])
             progress.append(np.amin(lenValues))
             stats = [self.iter,np.amax(lenValues),np.amin(lenValues),np.mean(lenValues),np.std(lenValues)]
-            print("{0}\t{1}\t{2}\t{3}\t{4}".format(stats[0], stats[1], stats[2], stats[3], stats[4]))
+            print("iter {} max {:.3f} min {:.3f} ave {:3f} var {:.3f}".format(stats[0], stats[1], stats[2], stats[3], stats[4]))
         t1 = time.clock()
+        print("{} city tour with length {:.2f} meters in {:.3f} secs".format(len(self.cities), self.computeTourLength(self.bestSoFarAnt.tour), t1-t0))
         bestTour = [self.cities[i] for i in self.bestSoFarAnt.tour]
-        print("{} city tour with length {:.2f} in {:.3f} secs".format(len(self.cities), tour_length(bestTour), t1-t0))
         return progress, bestTour
 
     def generateSolutions(self):

@@ -24,9 +24,13 @@ class MCTSUtil(object):
         self.actDim = actDim
         self.viewpoints = viewpoints
         self.nbMap = self.buildNeighborMap(viewpoints,cn)
+        self.landCount = len(self.map.landGrids)
 
-    def neighbors(self, vpIdx):
-        return self.nbMap[vpIdx]
+    def neighbors(self, vpIdx, size = 0):
+        if size == 0:
+            return self.nbMap[vpIdx]
+        else:
+            return self.nbMap[vpIdx][0:size]
 
     """
     build a map for viewpoints
@@ -70,46 +74,46 @@ class MCTSUtil(object):
         vpsState = [0]*len(self.viewpoints)
         vpsState[startVp.id] = 1
         gridState = [0]*len(self.map.grids)
+        landCover = 0
         for grid in startVp.landCover:
             gridState[grid.id] = 1
-
-        coveredGrids = np.asarray(np.nonzero(gridState)).flatten()
-        coverage = float(len(coveredGrids))/float(len(self.map.landGrids)) # only count land coverage
-        # print("initial state", startVp.id, coverage, len(self.map.landGrids))
-        state = MCTSState(self, startVp, vpsState, gridState, coverage, 0, 0.0)
+            landCover += 1
+        state = MCTSState(self,startVp,vpsState,gridState,landCover,0,0.0)
         return state
-
 
 """
 State represent the visited viewpoints and covered grids
 """
 class MCTSState(object):
-    def __init__(self, util, currVp, vpsState, gridState, coverage, overlap, traveledDist=0.0):
+    def __init__(self,util,currVp,vpsState,gridState,landCover,overlap,traveledDist=0.0):
         self.util = util
         self.currVp = currVp
         self.vpsState = vpsState
         self.gridState = gridState
-        self.coverage = coverage # total coverage
+        self.landCover = landCover
         self.overlap = overlap
         self.traveledDist = traveledDist # total distance
-        self.nbvps = self.util.neighbors(currVp.id)
+        self.nbvps = self.util.neighbors(currVp.id, self.util.actDim)
+        self.coverage = float(landCover)/float(self.util.landCount)
+        self.overlapRatio = float(overlap)/float(self.util.landCount)
 
     def isGameOver(self):
-        return self.coverage == 1.0
+        return self.coverage == 1.0 or len(self.neighbors()) == 0
 
     def score(self):
         """
         return a score indicating how good the state is
         considering coverage, overlap and traveled distance
         """
-        return 100*self.coverage - 0.1*self.overlap - 0.01*self.traveledDist
+        # print("score", 100*self.coverage-100*self.overlapRatio-0.01*self.traveledDist, self.coverage, self.overlapRatio, self.traveledDist)
+        return 100*self.coverage-100*self.overlapRatio-0.01*self.traveledDist
 
     def neighbors(self):
         """
         return neighbor viewpoints which have not been visited
         """
         unvisited = []
-        for i in range(len(self.nbvps)-1): # ignore the last one which is itself
+        for i in range(len(self.nbvps)-1):
             if len(unvisited) >= self.util.actDim:
                 break
             else:
@@ -128,18 +132,22 @@ class MCTSState(object):
 
         # update  viewpoints and grids states
         vpsState[nextVp.id] = 1
+
+        newLandCover = 0
+        newOverlap = 0
         viewGrids = nextVp.landCover
-        overlap = 0
         for grid in viewGrids:
             if gridState[grid.id]:
-                overlap += 1
+                newOverlap += 1
             else:
                 gridState[grid.id] = 1
+                newLandCover += 1
 
-        coveredGrids = np.asarray(np.nonzero(gridState)).flatten()
-        coverage = float(len(coveredGrids))/float(len(self.util.map.landGrids)) # only count land coverage
+        # move to a new state
+        landCover = self.landCover + newLandCover
+        overlap = self.overlap + newOverlap
         dist = self.traveledDist + vpDistance(self.currVp, nextVp)
-        return MCTSState(self.util, nextVp, vpsState, gridState, coverage, overlap, dist)
+        return MCTSState(self.util, nextVp, vpsState, gridState, landCover, overlap, dist)
 
 
 # base Node
@@ -184,6 +192,9 @@ class MCTSNode(object):
         """
         return c*self.maxReward + (1-c)*(self.totalReward/self.numberOfVisit)
 
+    def rolloutPolicy(self, possibleMoves):
+        return possibleMoves[np.random.randint(len(possibleMoves))]
+
     def rollout(self):
         """
         rollout: run a simulation with randomly choose a child to visit
@@ -191,13 +202,14 @@ class MCTSNode(object):
 
         """
         cState = self.state
+        score = cState.score()
         while not cState.isGameOver():
             nbvps = cState.neighbors()
-            vpIdx = nbvps[np.random.randint(len(nbvps))]  # rollout policy
+            vpIdx = self.rolloutPolicy(nbvps)
             vp = self.util.viewpoints[vpIdx]
             cState = cState.move(vp)
-        # print("-- rollout for viewpoint {}, coverage {:.2f} %, score {:.2f}".format(self.viewpoint().id, cState.coverage*100 , cState.score()))
-        return cState.score()
+            score = cState.score()
+        return score
 
     def expand(self):
         """
@@ -274,15 +286,14 @@ class MonteCarloTreeSearch(object):
         coverage = 0.0
         node = self.root
         while not node.isTerminalNode():
-            vp = node.viewpoint()
-            viewpoints.append(vp)
+            viewpoints.append(node.viewpoint())
             coverage = node.state.coverage
 
             if node.isFullyExpanded():
                 node = node.best_child(c=self.cparam,e=0.0)
             else:
                 break
-
+        viewpoints.append(node.viewpoint())
         return viewpoints, coverage
 
 ############################################################

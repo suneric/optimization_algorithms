@@ -317,7 +317,7 @@ def vpLandOverlapCount(vp1,vp2):
 """
 Plot the line and trajectory
 """
-def plot_lines(ax, points, style='bo-',width=2, markersize=10, addArrow=False):
+def plotLines(ax, points, style='bo-',width=2, markersize=10, addArrow=False):
     "Plot lines to connect a series of points."
     X,Y = [p.x for p in points],[p.y for p in points]
     EX,EY=[(points[i+1].x-points[i].x)/2 for i in range(len(points)-1)], [(points[i+1].y-points[i].y)/2 for i in range(len(points)-1)]
@@ -329,8 +329,8 @@ def plot_lines(ax, points, style='bo-',width=2, markersize=10, addArrow=False):
 
 def plotTrajectory(ax,tour,addArrow=False):
     start = tour[0]
-    plot_lines(ax,list(tour)+[start],addArrow=addArrow)
-    plot_lines(ax,[start],'yh',markersize=20) # mark the start city with a red square
+    plotLines(ax,list(tour)+[start],addArrow=addArrow)
+    plotLines(ax,[start],'yh',markersize=20) # mark the start city with a red square
 
 """
 Draw the trajectory and coverage dynamically with a specified speed
