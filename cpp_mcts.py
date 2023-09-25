@@ -265,12 +265,14 @@ class MonteCarloTreeSearch(object):
     def search(self,iteration,fe):
         t0 = time.clock()
         for i in range(iteration):
+            tis = time.clock()
             self.decayEpsilon(finalEpsilon=fe)
             v = self.treePolicy()
             r = v.rollout()
             v.backpropagate(r)
             vps, coverage = self.test()
-            print("iteration {}, epsilon {:.4f}, viewpoints explore {}, coverage {:.2f}%".format(i,self.epsilon,len(vps),coverage*100))
+            tie = time.clock()
+            print("iteration {}, epsilon {:.4f}, viewpoints explore {}, coverage {:.2f}%, iteration spend {:.3f}, in total {:.3f} ".format(i,self.epsilon,len(vps),coverage*100,(tie-tis), (tie-t0)))
             if coverage >= self.targetCoverage:
                 print("desired coverage achieved {:.2f}%".format(self.targetCoverage*100))
                 break
